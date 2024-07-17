@@ -1,0 +1,25 @@
+<UI version="4.0" >
+ <class>Malody4KChartConverterClass</class>
+ <widget class="QWidget" name="Malody4KChartConverterClass" >
+  <property name="objectName" >
+   <string notr="true">Malody4KChartConverterClass</string>
+  </property>
+  <property name="geometry" >
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>600</width>
+    <height>400</height>
+   </rect>
+  </property>
+  <property name="windowTitle" >
+   <string>Malody4KChartConverter</string>
+  </property>$centralwidget$
+ </widget>
+ <layoutDefault spacing="6" margin="11" />
+ <pixmapfunction></pixmapfunction>
+ <resources>
+   <include location="Malody4KChartConverter.qrc"/>
+ </resources>
+ <connections/>
+</UI>
