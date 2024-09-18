@@ -7,8 +7,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
-#include<QMediaPlayer>
-#include<QMediaMetaData>
+#include <QMediaPlayer>
+#include <QMediaMetaData>
 
 using ConvertStatus = Malody4KChartConverter::ConvertStatus;
 
@@ -151,10 +151,10 @@ ConvertStatus Malody4KChartConverter::convertSingle(const QString& srcFilePath)
 		handle with the last data, it is not a note,
 		and its sign is beatNum == 0
 		*/
-		//if (beatNum == 0)
-		//{
-		//	continue;
-		//}
+		if (beatNum == 0)
+		{
+			continue;
+		}
 
 		//find which range the beatNum belongs to
 		int bpmKey = 0;
