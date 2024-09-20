@@ -38,6 +38,7 @@ void Malody4KChartConverter::selectSrcFile()
 			{
 				QFileInfo srcFileInfo(srcFilePath);
 				srcPathAll += srcFileInfo.fileName();
+				srcPathAll += ", ";
 			}
 			ui.lineEdit_src->setText(srcPathAll);
 		}
@@ -98,7 +99,6 @@ ConvertStatus Malody4KChartConverter::convertSingle(const QString& srcFilePath)
 
 	//Parse srcJsonObj
 	QJsonObject metaObj = srcJsonObj["meta"].toObject();
-
 
 	//Create a new QJsonObj to store converted data
 	QJsonObject dstJsonObj;
@@ -202,39 +202,30 @@ ConvertStatus Malody4KChartConverter::convertSingle(const QString& srcFilePath)
 	// 3.3 write to dstJsonObj
 	dstJsonObj["note"] = dstNoteArray;
 
+	//Create a new directory in dstDir
+	dstDir.cd(dstDirPath);
+	QJsonObject songObj = metaObj["song"].toObject();
+	QString dstDirName = songObj["title"].toString();
+	dstDir.mkdir(dstDirName);
+	dstDir.cd(dstDirName);
+	//now dstDir is exactly in the new directory
 
-	//Create a new directory in dstDir, do once
-	//static bool isExecuted = false;
-	//C++ 17, I like it.    :)
-	if (static bool isExecuted = false; !isExecuted) 
+	//copy music
+	QString musicName = miscObj["sound"].toString();
+	QString musicSrcPath = srcDirPath + "/" + musicName;
+	QString musicDstPath = dstDir.path() + "/" + musicName;
+	if (!QFile::copy(musicSrcPath, musicDstPath))
 	{
-		dstDir.cd(dstDirPath);
-		QJsonObject songObj = metaObj["song"].toObject();
-		QString dstDirName = songObj["title"].toString();
-		dstDir.mkdir(dstDirName);
-		dstDir.cd(dstDirName);
-		//now dstDir is exactly in the new directory
-
-		//copy music
-		QString musicName = miscObj["sound"].toString();
-		QString musicSrcPath = srcDirPath + "/" + musicName;
-		QString musicDstPath = dstDir.path() + "/" + musicName;
-		if (!QFile::copy(musicSrcPath, musicDstPath))
-		{
-			qDebug() << "Warning: Copy music failed. sound: " << musicName << "\n";
-		}
-		//copy background
-		QString bgName = metaObj["background"].toString();
-		QString bgSrcPath = srcDirPath + "/" + bgName;
-		QString bgDstPath = dstDir.path() + "/" + bgName;
-		if (!QFile::copy(bgSrcPath, bgDstPath))
-		{
-			qDebug() << "Warning: Copy background failed. background:" << bgName << "\n";
-		}
-
-		isExecuted = true;
+		qDebug() << "Warning: Copy music failed. sound: " << musicName << "\n";
 	}
-
+	//copy background
+	QString bgName = metaObj["background"].toString();
+	QString bgSrcPath = srcDirPath + "/" + bgName;
+	QString bgDstPath = dstDir.path() + "/" + bgName;
+	if (!QFile::copy(bgSrcPath, bgDstPath))
+	{
+		qDebug() << "Warning: Copy background failed. background:" << bgName << "\n";
+	}
 
 	//Create a new file in dstDir and write dstJsonObj to it
 	QString dstFileName = metaObj["version"].toString();
