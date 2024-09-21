@@ -131,12 +131,12 @@ ConvertStatus Malody4KChartConverter::convertSingle(const QString& srcFilePath)
 	*/
 	QJsonArray bpmArray = srcJsonObj["time"].toArray();
 	// 3.1 calculate the "beatNum" of each bpm
-	QHash<int, double> bpmHash;
+	QHash<double, double> bpmHash;
 	for (const auto& bpmVal : bpmArray)
 	{
 		const auto& bpmObj = bpmVal.toObject();
 		const auto& beatArr = bpmObj["beat"].toArray();
-		int beatNum = getBeatNum(beatArr);
+		double beatNum = getBeatNum(beatArr);
 		bpmHash[beatNum] = bpmObj["bpm"].toDouble();
 	}
 
@@ -146,18 +146,18 @@ ConvertStatus Malody4KChartConverter::convertSingle(const QString& srcFilePath)
 	{
 		const auto& noteObj = noteVal.toObject();
 		const auto& beatArr = noteObj["beat"].toArray();
-		int beatNum = getBeatNum(beatArr);
+		double beatNum = getBeatNum(beatArr);
 		/*
 		handle with the last data, it is not a note,
 		and its sign is beatNum == 0
 		*/
-		if (beatNum == 0)
+		if (beatNum == 0.0)
 		{
 			continue;
 		}
 
 		//find which range the beatNum belongs to
-		int bpmKey = 0;
+		double bpmKey = 0;
 		for (const auto& key : bpmHash.keys())
 		{
 			/* Example:
@@ -171,7 +171,7 @@ ConvertStatus Malody4KChartConverter::convertSingle(const QString& srcFilePath)
 			}
 			bpmKey = key;
 		}
-		int bpm = bpmHash[bpmKey];
+		double bpm = bpmHash[bpmKey];
 		int noteTime = getNoteTime(beatArr, bpm, chartOffset);
 
 		QJsonObject dstNoteObj;
@@ -183,7 +183,7 @@ ConvertStatus Malody4KChartConverter::convertSingle(const QString& srcFilePath)
 		{
 			const auto& endBeatArr = noteObj["endbeat"].toArray();
 			//notice that the end bpm may be different from the start bpm
-			int endBpmKey = 0;
+			double endBpmKey = 0;
 			for (const auto& key : bpmHash.keys())
 			{
 				if (key > beatNum)
@@ -192,7 +192,7 @@ ConvertStatus Malody4KChartConverter::convertSingle(const QString& srcFilePath)
 				}
 				endBpmKey = key;
 			}
-			int endBpm = bpmHash[endBpmKey];
+			double endBpm = bpmHash[endBpmKey];
 			int endNoteTime = getNoteTime(endBeatArr, endBpm, chartOffset);
 			dstNoteObj["endTime"] = endNoteTime;
 		}

@@ -26,16 +26,16 @@ private:
     void convert();
     ConvertStatus convertSingle(const QString& srcFilePath);
 
-    int getBeatNum(const QJsonArray& beatArr)const
+    double getBeatNum(const QJsonArray& beatArr)const
     {
         int beat = beatArr.at(0).toInt();
         int pos = beatArr.at(1).toInt();
         int totalPos = beatArr.at(2).toInt();
-        return beat + pos / totalPos;
+        return beat + double(pos / totalPos);
     }
 
 	// Get the note time in ms
-    int getNoteTime(const QJsonArray& beatArr, int bpm, int offset)const
+    int getNoteTime(const QJsonArray& beatArr, double bpm, int offset)const
     {
         return getBeatNum(beatArr) * 60000 / bpm - offset;
     }
