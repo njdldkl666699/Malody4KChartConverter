@@ -31,7 +31,7 @@ private:
         int beat = beatArr.at(0).toInt();
         int pos = beatArr.at(1).toInt();
         int totalPos = beatArr.at(2).toInt();
-        return beat + double(pos / totalPos);
+        return beat + double(pos) / totalPos;
     }
 
 	// Get the note time in ms

@@ -16,6 +16,7 @@ Malody4KChartConverter::Malody4KChartConverter(QWidget* parent)
 	: QWidget(parent)
 {
 	ui.setupUi(this);
+	dstDirPath = "F:\\Progamming_Project\\Qt_Programs\\Melody\\beatmap";
 	connect(ui.pushButton_src, &QPushButton::clicked, this, &Malody4KChartConverter::selectSrcFile);
 	connect(ui.pushButton_dst, &QPushButton::clicked, this, &Malody4KChartConverter::selectDstDir);
 	connect(ui.pushButton_convert, &QPushButton::clicked, this, &Malody4KChartConverter::convert);
