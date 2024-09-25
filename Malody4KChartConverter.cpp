@@ -131,16 +131,16 @@ ConvertStatus Malody4KChartConverter::convertSingle(const QString& srcFilePath)
 	*/
 	QJsonArray bpmArray = srcJsonObj["time"].toArray();
 	// 3.1 calculate the "beatNum" of each bpm
-	QHash<double, double> bpmHash;
+	QMap<double, double> bpmMap;
 	for (const auto& bpmVal : bpmArray)
 	{
 		const auto& bpmObj = bpmVal.toObject();
 		const auto& beatArr = bpmObj["beat"].toArray();
 		double beatNum = getBeatNum(beatArr);
-		bpmHash[beatNum] = bpmObj["bpm"].toDouble();
+		bpmMap[beatNum] = bpmObj["bpm"].toDouble();
 	}
 
-	// 3.2 calculate the time(and endTime) of each note
+	// 3.2 calculate the time (and endTime) of each note
 	QJsonArray dstNoteArray;
 	for (const auto& noteVal : noteArray)
 	{
@@ -158,12 +158,12 @@ ConvertStatus Malody4KChartConverter::convertSingle(const QString& srcFilePath)
 
 		//find which range the beatNum belongs to
 		double bpmKey = 0;
-		for (const auto& key : bpmHash.keys())
+		for (const auto& key : bpmMap.keys())
 		{
 			/* Example:
-			bpmHash.keys() = {0,100,200,300}
+			bpmMap.keys() = {0,100,200,300}
 			beatNum = 150
-			so bpm should be bpmHash[100]
+			so bpm should be bpmMap[100]
 			*/
 			if (key > beatNum)
 			{
@@ -171,7 +171,7 @@ ConvertStatus Malody4KChartConverter::convertSingle(const QString& srcFilePath)
 			}
 			bpmKey = key;
 		}
-		double bpm = bpmHash[bpmKey];
+		double bpm = bpmMap[bpmKey];
 		int noteTime = getNoteTime(beatArr, bpm, chartOffset);
 
 		QJsonObject dstNoteObj;
@@ -184,7 +184,7 @@ ConvertStatus Malody4KChartConverter::convertSingle(const QString& srcFilePath)
 			const auto& endBeatArr = noteObj["endbeat"].toArray();
 			//notice that the end bpm may be different from the start bpm
 			double endBpmKey = 0;
-			for (const auto& key : bpmHash.keys())
+			for (const auto& key : bpmMap.keys())
 			{
 				if (key > beatNum)
 				{
@@ -192,7 +192,7 @@ ConvertStatus Malody4KChartConverter::convertSingle(const QString& srcFilePath)
 				}
 				endBpmKey = key;
 			}
-			double endBpm = bpmHash[endBpmKey];
+			double endBpm = bpmMap[endBpmKey];
 			int endNoteTime = getNoteTime(endBeatArr, endBpm, chartOffset);
 			dstNoteObj["endTime"] = endNoteTime;
 		}
