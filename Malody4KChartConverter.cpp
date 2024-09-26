@@ -103,19 +103,7 @@ ConvertStatus Malody4KChartConverter::convertSingle(const QString& srcFilePath)
 	//Create a new QJsonObj to store converted data
 	QJsonObject dstJsonObj;
 
-	//#### Useless ####
-	//// 1. get music total time(ms)
-	//QMediaPlayer musicPlayer;
-	//musicPlayer.setSource(QUrl::fromLocalFile(musicFilePath));
-	////int musicTotalTime = musicPlayer.metaData()["Duration"].toInt();
-	//musicDuration = musicPlayer.metaData()[QMediaMetaData::Duration].toInt();
-
-	// 2. get offset
-	QJsonArray noteArray = srcJsonObj["note"].toArray();
-	QJsonObject miscObj = noteArray.last().toObject();
-	int chartOffset = miscObj["offset"].toInt();
-
-	/* 3. get note array and write to dstJsonObj
+	/* Get note array and write to dstJsonObj
 	Example:
 	"note": [
 		{
@@ -129,51 +117,66 @@ ConvertStatus Malody4KChartConverter::convertSingle(const QString& srcFilePath)
 		}
 	]
 	*/
+	// 1. Init bpmInfoVec
 	QJsonArray bpmArray = srcJsonObj["time"].toArray();
-	// 3.1 calculate the "beatNum" of each bpm
-	QMap<double, double> bpmMap;
+	QVector<bpmInfo> bpmInfoVec;
 	for (const auto& bpmVal : bpmArray)
 	{
 		const auto& bpmObj = bpmVal.toObject();
 		const auto& beatArr = bpmObj["beat"].toArray();
-		double beatNum = getBeatNum(beatArr);
-		bpmMap[beatNum] = bpmObj["bpm"].toDouble();
+		bpmInfo bpmInfo{};
+		bpmInfo.beatNum = getBeatNum(beatArr);
+		bpmInfo.bpm = bpmObj["bpm"].toDouble();
+		bpmInfo.time = 0.0;
+		bpmInfoVec.push_back(bpmInfo);
+	}
+	//calculate the time of each bpmInfo
+	for (qsizetype i = 1; i < bpmInfoVec.size(); i++)
+	{
+		double deltaBeat = bpmInfoVec[i].beatNum - bpmInfoVec[i - 1].beatNum;
+		double deltaTime = deltaBeat * 60000.0 / bpmInfoVec[i - 1].bpm;
+		bpmInfoVec[i].time = bpmInfoVec[i - 1].time + deltaTime;
 	}
 
-	// 3.2 calculate the time (and endTime) of each note
+	// 2. Calculate the time (and endTime) of each note
+	QJsonArray noteArray = srcJsonObj["note"].toArray();
 	QJsonArray dstNoteArray;
+	QJsonObject miscObj;
 	for (const auto& noteVal : noteArray)
 	{
 		const auto& noteObj = noteVal.toObject();
 		const auto& beatArr = noteObj["beat"].toArray();
 		double beatNum = getBeatNum(beatArr);
-		/*
-		handle with the last data, it is not a note,
-		and its sign is beatNum == 0
-		*/
+
+		//Handle with the fake note data,
+		//which stores offset and music name
 		if (beatNum == 0.0)
 		{
+			miscObj = noteObj;
 			continue;
 		}
-
+		
 		//find which range the beatNum belongs to
-		double bpmKey = 0;
-		for (const auto& key : bpmMap.keys())
+		int bpmIndex = 0;
+		for (qsizetype i = 0; i < bpmInfoVec.size(); i++)
 		{
-			/* Example:
-			bpmMap.keys() = {0,100,200,300}
-			beatNum = 150
-			so bpm should be bpmMap[100]
-			*/
-			if (key > beatNum)
+			if (beatNum >= bpmInfoVec[i].beatNum)
+			{
+				bpmIndex = i;
+			}
+			else
 			{
 				break;
 			}
-			bpmKey = key;
 		}
-		double bpm = bpmMap[bpmKey];
-		int noteTime = getNoteTime(beatArr, bpm, chartOffset);
 
+		//calculate the time of the note
+		bpmInfo curBpmInfo = bpmInfoVec[bpmIndex];
+		double deltaBeat = beatNum - curBpmInfo.beatNum;
+		double deltaTime = deltaBeat * 60000.0 / curBpmInfo.bpm;
+		int noteTime = curBpmInfo.time + deltaTime;
+
+		//write to dstNoteObj
 		QJsonObject dstNoteObj;
 		dstNoteObj["column"] = noteObj["column"].toInt();
 		dstNoteObj["time"] = noteTime;
@@ -182,25 +185,36 @@ ConvertStatus Malody4KChartConverter::convertSingle(const QString& srcFilePath)
 		if (noteObj.contains("endbeat"))
 		{
 			const auto& endBeatArr = noteObj["endbeat"].toArray();
-			//notice that the end bpm may be different from the start bpm
-			double endBpmKey = 0;
-			for (const auto& key : bpmMap.keys())
+			double beatNum = getBeatNum(endBeatArr);
+
+			int bpmIndex = 0;
+			for (qsizetype i = 0; i < bpmInfoVec.size(); i++)
 			{
-				if (key > beatNum)
+				if (beatNum >= bpmInfoVec[i].beatNum)
+				{
+					bpmIndex = i;
+				}
+				else
 				{
 					break;
 				}
-				endBpmKey = key;
 			}
-			double endBpm = bpmMap[endBpmKey];
-			int endNoteTime = getNoteTime(endBeatArr, endBpm, chartOffset);
+
+			bpmInfo bpmInfo = bpmInfoVec[bpmIndex];
+			double deltaBeat = beatNum - bpmInfo.beatNum;
+			double deltaTime = deltaBeat * 60000.0 / bpmInfo.bpm;
+			int endNoteTime = bpmInfo.time + deltaTime;
 			dstNoteObj["endTime"] = endNoteTime;
 		}
+
+		//add dstNoteObj to dstNoteArray
 		dstNoteArray.append(dstNoteObj);
 	}
-
-	// 3.3 write to dstJsonObj
+	// 3. Write to dstJsonObj
 	dstJsonObj["note"] = dstNoteArray;
+
+	//Write offset to dstJsonObj
+	dstJsonObj["offset"] = miscObj["offset"];
 
 	//Create a new directory in dstDir
 	dstDir.cd(dstDirPath);
@@ -210,7 +224,7 @@ ConvertStatus Malody4KChartConverter::convertSingle(const QString& srcFilePath)
 	dstDir.cd(dstDirName);
 	//now dstDir is exactly in the new directory
 
-	//copy music
+	//Copy music
 	QString musicName = miscObj["sound"].toString();
 	QString musicSrcPath = srcDirPath + "/" + musicName;
 	QString musicDstPath = dstDir.path() + "/" + musicName;
@@ -218,7 +232,7 @@ ConvertStatus Malody4KChartConverter::convertSingle(const QString& srcFilePath)
 	{
 		qDebug() << "Warning: Copy music failed. sound: " << musicName << "\n";
 	}
-	//copy background
+	//Copy background
 	QString bgName = metaObj["background"].toString();
 	QString bgSrcPath = srcDirPath + "/" + bgName;
 	QString bgDstPath = dstDir.path() + "/" + bgName;

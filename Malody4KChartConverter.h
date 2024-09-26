@@ -21,6 +21,14 @@ public:
     ~Malody4KChartConverter() {};
 
 private:
+    struct bpmInfo
+    {
+        double beatNum;
+        double bpm;
+        double time;
+    };
+
+private:
     void selectSrcFile();
     void selectDstDir();
     void convert();
@@ -32,12 +40,6 @@ private:
         int pos = beatArr.at(1).toInt();
         int totalPos = beatArr.at(2).toInt();
         return beat + double(pos) / totalPos;
-    }
-
-	// Get the note time in ms
-    int getNoteTime(const QJsonArray& beatArr, double bpm, int offset)const
-    {
-        return getBeatNum(beatArr) * 60000 / bpm - offset;
     }
 
 private:
